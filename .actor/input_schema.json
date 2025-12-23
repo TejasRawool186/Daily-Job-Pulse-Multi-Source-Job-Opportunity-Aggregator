@@ -27,28 +27,16 @@
         },
         "sources": {
             "title": "Job Sources",
-            "description": "Select which job platforms to scan",
+            "description": "Select which job platforms to scan: remoteok, indeed, wellfound, weworkremotely",
             "type": "array",
-            "editor": "select",
+            "editor": "stringList",
             "prefill": [
                 "remoteok",
                 "weworkremotely"
             ],
             "items": {
-                "type": "string",
-                "enum": [
-                    "remoteok",
-                    "indeed",
-                    "wellfound",
-                    "weworkremotely"
-                ]
-            },
-            "enumTitles": [
-                "RemoteOK",
-                "Indeed",
-                "Wellfound",
-                "We Work Remotely"
-            ]
+                "type": "string"
+            }
         },
         "maxResultsPerSource": {
             "title": "Max Results Per Source",
