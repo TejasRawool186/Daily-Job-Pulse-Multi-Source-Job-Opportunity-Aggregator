@@ -27,15 +27,48 @@
         },
         "sources": {
             "title": "Job Sources",
-            "description": "Select which job platforms to scan: remoteok, indeed, wellfound, weworkremotely",
+            "description": "Select which job platforms to scan",
             "type": "array",
-            "editor": "stringList",
+            "editor": "select",
             "prefill": [
                 "remoteok",
-                "weworkremotely"
+                "linkedin",
+                "naukri",
+                "indeed"
+            ],
+            "default": [
+                "remoteok",
+                "linkedin"
             ],
             "items": {
-                "type": "string"
+                "type": "string",
+                "enum": [
+                    "remoteok",
+                    "linkedin",
+                    "indeed",
+                    "glassdoor",
+                    "naukri",
+                    "monster",
+                    "weworkremotely",
+                    "wellfound",
+                    "simplyhired",
+                    "ziprecruiter",
+                    "dice",
+                    "flexjobs",
+                    "stackoverflow",
+                    "github",
+                    "careerbuilder",
+                    "shine",
+                    "timesjobs",
+                    "foundit",
+                    "instahyre",
+                    "hirist",
+                    "cutshort",
+                    "angellist",
+                    "toptal",
+                    "turing",
+                    "arc"
+                ]
             }
         },
         "maxResultsPerSource": {

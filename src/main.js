@@ -1,25 +1,113 @@
 /**
  * Daily Job Pulse - Multi-Source Job Opportunity Aggregator
  * 
- * Scans multiple job platforms and aggregates job opportunities
+ * Scans 25+ job platforms and aggregates job opportunities
  * with direct apply links. No AI, no API keys required.
  */
 
 import { Actor, log } from 'apify';
+
+// Original scrapers
 import { scrapeRemoteOK } from './scrapers/remoteok.js';
 import { scrapeIndeed } from './scrapers/indeed.js';
 import { scrapeWellfound } from './scrapers/wellfound.js';
 import { scrapeWeWorkRemotely } from './scrapers/weworkremotely.js';
+
+// Worldwide scrapers
+import { scrapeLinkedIn } from './scrapers/linkedin.js';
+import { scrapeGlassdoor } from './scrapers/glassdoor.js';
+import { scrapeMonster } from './scrapers/monster.js';
+import {
+    scrapeSimplyHired,
+    scrapeZipRecruiter,
+    scrapeDice,
+    scrapeFlexJobs,
+    scrapeStackOverflow,
+    scrapeGitHub,
+    scrapeCareerBuilder,
+    scrapeAngelList,
+    scrapeToptal,
+    scrapeTuring,
+    scrapeArc
+} from './scrapers/worldwide.js';
+
+// India scrapers
+import { scrapeNaukri } from './scrapers/naukri.js';
+import {
+    scrapeShine,
+    scrapeTimesJobs,
+    scrapeFoundit,
+    scrapeInstahyre,
+    scrapeHirist,
+    scrapeCutshort
+} from './scrapers/india.js';
+
+// Utilities
 import { normalizeJob } from './utils/normalizer.js';
 import { deduplicateJobs } from './utils/deduplicator.js';
 import { generateDashboard } from './utils/dashboard.js';
 
-// Map source names to scraper functions
+// Map source names to scraper functions (25 sources)
 const SCRAPERS = {
+    // Original sources
     remoteok: scrapeRemoteOK,
     indeed: scrapeIndeed,
     wellfound: scrapeWellfound,
     weworkremotely: scrapeWeWorkRemotely,
+
+    // Worldwide platforms
+    linkedin: scrapeLinkedIn,
+    glassdoor: scrapeGlassdoor,
+    monster: scrapeMonster,
+    simplyhired: scrapeSimplyHired,
+    ziprecruiter: scrapeZipRecruiter,
+    dice: scrapeDice,
+    flexjobs: scrapeFlexJobs,
+    stackoverflow: scrapeStackOverflow,
+    github: scrapeGitHub,
+    careerbuilder: scrapeCareerBuilder,
+    angellist: scrapeAngelList,
+    toptal: scrapeToptal,
+    turing: scrapeTuring,
+    arc: scrapeArc,
+
+    // India platforms
+    naukri: scrapeNaukri,
+    shine: scrapeShine,
+    timesjobs: scrapeTimesJobs,
+    foundit: scrapeFoundit,
+    instahyre: scrapeInstahyre,
+    hirist: scrapeHirist,
+    cutshort: scrapeCutshort,
+};
+
+// Source display names for logging
+const SOURCE_NAMES = {
+    remoteok: 'RemoteOK',
+    indeed: 'Indeed',
+    wellfound: 'Wellfound',
+    weworkremotely: 'WeWorkRemotely',
+    linkedin: 'LinkedIn',
+    glassdoor: 'Glassdoor',
+    monster: 'Monster',
+    simplyhired: 'SimplyHired',
+    ziprecruiter: 'ZipRecruiter',
+    dice: 'Dice',
+    flexjobs: 'FlexJobs',
+    stackoverflow: 'StackOverflow',
+    github: 'GitHub',
+    careerbuilder: 'CareerBuilder',
+    angellist: 'AngelList',
+    toptal: 'Toptal',
+    turing: 'Turing',
+    arc: 'Arc',
+    naukri: 'Naukri',
+    shine: 'Shine',
+    timesjobs: 'TimesJobs',
+    foundit: 'Foundit',
+    instahyre: 'Instahyre',
+    hirist: 'Hirist',
+    cutshort: 'CutShort',
 };
 
 await Actor.init();
@@ -33,7 +121,7 @@ try {
     const {
         roles = ['Software Engineer'],
         location = 'Remote',
-        sources = ['remoteok', 'weworkremotely'],
+        sources = ['remoteok', 'linkedin', 'naukri', 'indeed'],
         maxResultsPerSource = 25,
         maxDaysOld = 7,
     } = input;
@@ -41,7 +129,7 @@ try {
     log.info('🚀 Starting Daily Job Pulse', {
         roles,
         location,
-        sources,
+        sources: sources.length + ' platforms selected',
         maxResultsPerSource,
         maxDaysOld,
     });
@@ -51,41 +139,51 @@ try {
         throw new Error('At least one job role is required');
     }
 
+    // Log selected sources
+    log.info(`📡 Selected job sources: ${sources.map(s => SOURCE_NAMES[s] || s).join(', ')}`);
+
     // Run scrapers for selected sources
     const allJobs = [];
     const scraperResults = await Promise.allSettled(
         sources.map(async (source) => {
             const scraper = SCRAPERS[source];
             if (!scraper) {
-                log.warning(`Unknown source: ${source}, skipping...`);
+                log.warning(`⚠️ Unknown source: ${source}, skipping...`);
                 return { source, jobs: [], error: null };
             }
 
             try {
-                log.info(`📡 Scanning ${source}...`);
+                const sourceName = SOURCE_NAMES[source] || source;
+                log.info(`📡 Scanning ${sourceName}...`);
                 const jobs = await scraper({
                     roles,
                     location,
                     maxResults: maxResultsPerSource,
                     maxDaysOld,
                 });
-                log.info(`✅ Found ${jobs.length} jobs from ${source}`);
+                log.info(`✅ Found ${jobs.length} jobs from ${sourceName}`);
                 return { source, jobs, error: null };
             } catch (error) {
-                log.error(`❌ Failed to scrape ${source}: ${error.message}`);
+                const sourceName = SOURCE_NAMES[source] || source;
+                log.warning(`⚠️ ${sourceName}: ${error.message}`);
                 return { source, jobs: [], error: error.message };
             }
         })
     );
 
     // Collect all jobs and handle failures gracefully
+    let successfulSources = 0;
     for (const result of scraperResults) {
-        if (result.status === 'fulfilled' && result.value.jobs.length > 0) {
-            allJobs.push(...result.value.jobs);
+        if (result.status === 'fulfilled') {
+            if (result.value.jobs.length > 0) {
+                allJobs.push(...result.value.jobs);
+                successfulSources++;
+            }
         }
     }
 
     log.info(`📊 Total jobs collected before normalization: ${allJobs.length}`);
+    log.info(`📊 Successful sources: ${successfulSources}/${sources.length}`);
 
     // Normalize all jobs
     const normalizedJobs = allJobs
@@ -106,6 +204,7 @@ try {
     const stats = {
         totalJobs: uniqueJobs.length,
         sourcesScanned: sources.length,
+        successfulSources: successfulSources,
         roles: roles,
         location: location,
         runtime: runtime,
@@ -140,6 +239,7 @@ try {
     log.info('🎉 Daily Job Pulse completed successfully!', {
         totalJobsFound: uniqueJobs.length,
         sourcesScanned: sources.length,
+        successfulSources,
         roles,
         location,
         runtime: `${runtime}s`,
