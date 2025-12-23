@@ -1,0 +1,32 @@
+{
+    "actorOutputSchemaVersion": 1,
+    "title": "Daily Job Pulse Output",
+    "description": "Interactive dashboard and dataset of job opportunities",
+    "type": "object",
+    "properties": {
+        "dashboard": {
+            "type": "string",
+            "title": "📊 Interactive Dashboard",
+            "description": "Beautiful interactive HTML dashboard with all scraped jobs, search, and filters",
+            "template": "{{links.apiDefaultKeyValueStoreUrl}}/records/dashboard.html"
+        },
+        "jobs": {
+            "type": "string",
+            "title": "💼 Job Listings (JSON)",
+            "description": "Raw job data in JSON format for integration with other tools",
+            "template": "{{links.apiDefaultDatasetUrl}}/items"
+        },
+        "jobsCSV": {
+            "type": "string",
+            "title": "📥 Download CSV",
+            "description": "Download all job listings as a CSV file",
+            "template": "{{links.apiDefaultDatasetUrl}}/items?format=csv"
+        },
+        "jobsExcel": {
+            "type": "string",
+            "title": "📊 Download Excel",
+            "description": "Download all job listings as an Excel file",
+            "template": "{{links.apiDefaultDatasetUrl}}/items?format=xlsx"
+        }
+    }
+}

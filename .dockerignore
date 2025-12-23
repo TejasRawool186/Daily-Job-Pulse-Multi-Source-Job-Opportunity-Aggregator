@@ -1,0 +1,10 @@
+node_modules
+.git
+.gitignore
+*.md
+!README.md
+storage
+apify_storage
+.idea
+.vscode
+*.log

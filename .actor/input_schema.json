@@ -1,0 +1,75 @@
+{
+    "title": "Daily Job Pulse Input",
+    "description": "Configure job search parameters for multi-source job aggregation",
+    "type": "object",
+    "schemaVersion": 1,
+    "properties": {
+        "roles": {
+            "title": "Job Roles",
+            "description": "List of job roles to search for (e.g., 'Backend Developer', 'Data Analyst')",
+            "type": "array",
+            "editor": "stringList",
+            "prefill": [
+                "Software Engineer",
+                "Frontend Developer"
+            ],
+            "items": {
+                "type": "string"
+            }
+        },
+        "location": {
+            "title": "Location",
+            "description": "Filter by location (country, city, or 'Remote')",
+            "type": "string",
+            "editor": "textfield",
+            "prefill": "Remote",
+            "nullable": true
+        },
+        "sources": {
+            "title": "Job Sources",
+            "description": "Select which job platforms to scan",
+            "type": "array",
+            "editor": "select",
+            "prefill": [
+                "remoteok",
+                "weworkremotely"
+            ],
+            "items": {
+                "type": "string",
+                "enum": [
+                    "remoteok",
+                    "indeed",
+                    "wellfound",
+                    "weworkremotely"
+                ]
+            },
+            "enumTitles": [
+                "RemoteOK",
+                "Indeed",
+                "Wellfound",
+                "We Work Remotely"
+            ]
+        },
+        "maxResultsPerSource": {
+            "title": "Max Results Per Source",
+            "description": "Maximum number of job listings to fetch from each source",
+            "type": "integer",
+            "editor": "number",
+            "prefill": 25,
+            "minimum": 5,
+            "maximum": 100
+        },
+        "maxDaysOld": {
+            "title": "Maximum Days Old",
+            "description": "Only include jobs posted within this many days",
+            "type": "integer",
+            "editor": "number",
+            "prefill": 7,
+            "minimum": 1,
+            "maximum": 30
+        }
+    },
+    "required": [
+        "roles"
+    ]
+}

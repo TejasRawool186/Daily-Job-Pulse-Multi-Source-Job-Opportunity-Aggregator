@@ -1,0 +1,343 @@
+📘 Software Requirements Specification (SRS)
+Project Title
+
+daily-job-pulse – Multi-Source Job Opportunity Aggregator
+
+1. Introduction
+1.1 Purpose
+
+The purpose of this document is to define the complete software requirements for daily-job-pulse, an Apify Actor that scans multiple job platforms on a daily basis and aggregates the latest job opportunities with direct apply links.
+
+The system is designed to:
+
+Work without AI
+
+Require no API keys
+
+Be fast, reliable, and reusable daily
+
+Provide high-value, actionable output for job seekers and recruiters
+
+1.2 Scope
+
+The actor will:
+
+Scan multiple public job platforms
+
+Extract newly posted job opportunities
+
+Normalize and deduplicate results
+
+Provide direct apply links
+
+Output results in a structured dataset format
+
+The actor is optimized for daily execution and automation workflows.
+
+Out of Scope (MVP):
+
+Resume analysis
+
+Candidate ranking
+
+Login-based job portals
+
+AI-based recommendations
+
+Salary prediction
+
+1.3 Target Users
+
+Students and fresh graduates
+
+Active job seekers
+
+Career switchers
+
+Recruiters and HR teams
+
+Placement cells
+
+Automation users (Zapier, Make, cron jobs)
+
+2. System Overview
+2.1 System Type
+
+Cloud-based automation tool
+
+Implemented as an Apify Actor
+
+Supports manual runs and scheduled runs
+
+2.2 Supported Job Platforms (MVP)
+
+RemoteOK
+
+Indeed
+
+Wellfound (AngelList Talent)
+
+We Work Remotely
+
+The system is modular and can be extended to additional platforms in future versions.
+
+3. Functional Requirements
+3.1 Input Requirements
+FR-1: Job Role Input
+
+The system shall accept one or more job roles as input.
+
+Example values:
+
+Backend Developer
+
+Data Analyst
+
+Frontend Developer
+
+FR-2: Location Filter
+
+The system shall allow filtering by location.
+
+Supported values:
+
+Country
+
+City
+
+Remote
+
+FR-3: Source Selection
+
+The system shall allow users to choose which job platforms to scan.
+
+Default sources must be prefilled.
+
+FR-4: Result Limit
+
+The system shall allow users to define the maximum number of results per source.
+
+3.2 Job Data Collection
+FR-5: Multi-Source Scanning
+
+The system shall scan each selected job platform independently.
+
+Failure of one platform shall not affect others.
+
+FR-6: Public Data Only
+
+The system shall scrape only publicly accessible job listings.
+
+No authentication or login shall be required.
+
+FR-7: Apply Link Extraction
+
+Each job listing must include a valid apply link.
+
+Listings without apply links shall be excluded.
+
+3.3 Data Processing
+FR-8: Normalization
+
+All job listings shall be normalized into a common structure containing:
+
+Job title
+
+Company name
+
+Location
+
+Source platform
+
+Job listing URL
+
+Apply link
+
+Posting date (if available)
+
+FR-9: De-duplication
+
+Duplicate job listings across platforms shall be removed.
+
+Deduplication shall be based on:
+
+Job title
+
+Company name
+
+Apply link
+
+FR-10: Freshness Filtering
+
+The system shall prioritize jobs posted:
+
+On the current day, or
+
+Within the last N days (configurable)
+
+3.4 Output Requirements
+FR-11: Dataset Generation
+
+Each valid job listing shall be pushed as one dataset item.
+
+The dataset represents the daily job pulse.
+
+FR-12: Output Structure
+
+Each dataset item shall contain:
+
+{
+  "jobTitle": "Backend Developer",
+  "company": "Company Name",
+  "location": "Remote / City / Country",
+  "source": "RemoteOK",
+  "postedDate": "YYYY-MM-DD",
+  "jobUrl": "Job listing URL",
+  "applyLink": "Direct apply URL"
+}
+
+3.5 Monetization
+FR-13: Usage-Based Charging
+
+The system shall trigger a billing event once per run.
+
+await Actor.triggerCharge({ eventName: "daily-job-scan" });
+
+FR-14: Pricing Transparency
+
+Pricing logic shall be clearly documented in the README.
+
+3.6 Error Handling & Reliability
+FR-15: Graceful Failure Handling
+
+If a job source fails, the system shall continue processing other sources.
+
+FR-16: Logging
+
+Errors and failed sources shall be logged for debugging.
+
+The actor shall not crash due to partial failures.
+
+4. Non-Functional Requirements
+4.1 Performance
+
+Prefilled input must complete within 5 minutes
+
+Target average runtime: 1–3 minutes
+
+4.2 Reliability
+
+No external API keys required
+
+Retry logic for transient failures
+
+Stable execution across daily runs
+
+4.3 Usability
+
+Prefilled input must produce non-empty output
+
+Output must be easily exportable (CSV, JSON, Excel)
+
+Apply links must be clickable and valid
+
+4.4 Scalability
+
+Support multiple roles and locations
+
+Support additional job platforms
+
+Modular scraper architecture
+
+4.5 Security & Compliance
+
+No personal user data collected
+
+No credential scraping
+
+Public data only
+
+Respect platform usage limits
+
+5. Input Specification
+Required Inputs
+Field	Type	Required
+roles	array	Yes
+Optional Inputs
+Field	Type
+location	string
+sources	array
+maxResultsPerSource	number
+6. Output Specification
+Dataset View
+
+The dataset shall be displayed in a table view with columns:
+
+Job Title
+
+Company
+
+Location
+
+Source
+
+Posted Date
+
+Apply Link
+
+7. Constraints
+
+No AI usage
+
+No login-based scraping
+
+Public job listings only
+
+Must comply with Apify platform constraints
+
+8. Assumptions
+
+Job platforms expose public listings
+
+Apply links remain accessible
+
+Posting dates may not always be available
+
+9. Future Enhancements (Post-Challenge)
+
+Daily difference tracking (new vs previous day)
+
+Saved job searches
+
+Email / webhook alerts
+
+Company-specific monitoring
+
+Skill frequency analytics
+
+10. Success Criteria (Hackathon)
+
+Actor published on Apify Store
+
+Quality Score ≥ 65
+
+Successful prefilled execution
+
+Monetization enabled
+
+Daily-use value clearly demonstrated
+
+11. Conclusion
+
+daily-job-pulse – Multi-Source Job Opportunity Aggregator is a:
+
+High-utility
+
+Daily-use
+
+No-AI
+
+Monetizable
+Apify Actor designed to help users efficiently track job opportunities across multiple platforms.
+
+This actor is well-aligned with Apify’s quality guidelines and challenge-winning criteria.

@@ -1,0 +1,64 @@
+{
+    "actorSpecification": 1,
+    "name": "daily-job-pulse",
+    "title": "Daily Job Pulse - Multi-Source Job Aggregator",
+    "description": "Scans multiple job platforms daily (RemoteOK, Indeed, Wellfound, We Work Remotely) and aggregates the latest job opportunities with direct apply links. No AI, no API keys required.",
+    "version": "1.0.0",
+    "buildTag": "latest",
+    "meta": {
+        "templateId": "js-crawlee-cheerio"
+    },
+    "input": "./.actor/input_schema.json",
+    "output": "./.actor/output_schema.json",
+    "dockerfile": "./Dockerfile",
+    "storages": {
+        "dataset": {
+            "actorSpecification": 1,
+            "title": "Job Listings Dataset",
+            "views": {
+                "jobs": {
+                    "title": "Job Opportunities",
+                    "transformation": {
+                        "fields": [
+                            "jobTitle",
+                            "company",
+                            "location",
+                            "source",
+                            "postedDate",
+                            "applyLink"
+                        ]
+                    },
+                    "display": {
+                        "component": "table",
+                        "properties": {
+                            "jobTitle": {
+                                "label": "Job Title",
+                                "format": "text"
+                            },
+                            "company": {
+                                "label": "Company",
+                                "format": "text"
+                            },
+                            "location": {
+                                "label": "Location",
+                                "format": "text"
+                            },
+                            "source": {
+                                "label": "Source",
+                                "format": "text"
+                            },
+                            "postedDate": {
+                                "label": "Posted Date",
+                                "format": "text"
+                            },
+                            "applyLink": {
+                                "label": "Apply Link",
+                                "format": "link"
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
