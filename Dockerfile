@@ -1,5 +1,5 @@
-# Use Apify's Node.js image
-FROM apify/actor-node:18
+# Use Apify's Node.js 20 image (required for modern undici/fetch)
+FROM apify/actor-node:20
 
 # Copy package files
 COPY package*.json ./
