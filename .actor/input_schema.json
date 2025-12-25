@@ -32,19 +32,18 @@
             "editor": "select",
             "prefill": [
                 "remoteok",
-                "linkedin",
                 "naukri",
-                "indeed"
+                "indeed",
+                "glassdoor"
             ],
             "default": [
                 "remoteok",
-                "linkedin"
+                "indeed"
             ],
             "items": {
                 "type": "string",
                 "enum": [
                     "remoteok",
-                    "linkedin",
                     "indeed",
                     "glassdoor",
                     "naukri",

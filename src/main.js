@@ -14,7 +14,6 @@ import { scrapeWellfound } from './scrapers/wellfound.js';
 import { scrapeWeWorkRemotely } from './scrapers/weworkremotely.js';
 
 // Worldwide scrapers
-import { scrapeLinkedIn } from './scrapers/linkedin.js';
 import { scrapeGlassdoor } from './scrapers/glassdoor.js';
 import { scrapeMonster } from './scrapers/monster.js';
 import {
@@ -56,7 +55,6 @@ const SCRAPERS = {
     weworkremotely: scrapeWeWorkRemotely,
 
     // Worldwide platforms
-    linkedin: scrapeLinkedIn,
     glassdoor: scrapeGlassdoor,
     monster: scrapeMonster,
     simplyhired: scrapeSimplyHired,
@@ -87,7 +85,6 @@ const SOURCE_NAMES = {
     indeed: 'Indeed',
     wellfound: 'Wellfound',
     weworkremotely: 'WeWorkRemotely',
-    linkedin: 'LinkedIn',
     glassdoor: 'Glassdoor',
     monster: 'Monster',
     simplyhired: 'SimplyHired',
@@ -121,7 +118,7 @@ try {
     const {
         roles = ['Software Engineer'],
         location = 'Remote',
-        sources = ['remoteok', 'linkedin', 'naukri', 'indeed'],
+        sources = ['remoteok', 'naukri', 'indeed', 'glassdoor'],
         maxResultsPerSource = 25,
         maxDaysOld = 7,
     } = input;
