@@ -1,14 +1,20 @@
 {
     "actorOutputSchemaVersion": 1,
     "title": "Daily Job Pulse Output",
-    "description": "Interactive dashboard and dataset of job opportunities",
+    "description": "Interactive dashboard, job dataset, and run analytics",
     "type": "object",
     "properties": {
         "dashboard": {
             "type": "string",
             "title": "📊 Interactive Dashboard",
-            "description": "Beautiful interactive HTML dashboard with all scraped jobs, search, and filters",
+            "description": "Beautiful interactive dashboard with search, filters, sorting, dark/light mode, and CSV export",
             "template": "{{links.apiDefaultKeyValueStoreUrl}}/records/dashboard.html"
+        },
+        "runSummary": {
+            "type": "string",
+            "title": "📈 Run Summary (JSON)",
+            "description": "Machine-readable run analytics with per-source statistics and timing",
+            "template": "{{links.apiDefaultKeyValueStoreUrl}}/records/run-summary"
         },
         "jobs": {
             "type": "string",
@@ -25,7 +31,7 @@
         "jobsExcel": {
             "type": "string",
             "title": "📊 Download Excel",
-            "description": "Download all job listings as an Excel file",
+            "description": "Download all job listings as an Excel spreadsheet",
             "template": "{{links.apiDefaultDatasetUrl}}/items?format=xlsx"
         }
     }

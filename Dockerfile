@@ -1,21 +1,16 @@
-# Use Apify's Node.js 20 image (required for modern undici/fetch)
-FROM apify/actor-node:20
+# Use Apify's Node.js 22 LTS image
+FROM apify/actor-node:22
 
-# Copy package files
+# Copy package files first for Docker layer caching
 COPY package*.json ./
 
-# Install dependencies
-RUN npm install --omit=dev --omit=optional \
-    && npm update \
-    && echo "Installed NPM packages:" \
-    && npm list --all || true \
-    && echo "Node.js version:" \
-    && node --version \
-    && echo "NPM version:" \
-    && npm --version
+# Install production dependencies only, clean cache
+RUN npm --quiet set progress=false \
+    && npm install --omit=dev --omit=optional \
+    && rm -rf ~/.npm
 
 # Copy source code
 COPY . ./
 
 # Run the actor
-CMD ["npm", "start"]
+CMD npm start --silent

@@ -1,25 +1,22 @@
 {
-    "title": "Daily Job Pulse Input",
-    "description": "Configure job search parameters for multi-source job aggregation",
+    "title": "Daily Job Pulse Configuration",
+    "description": "Configure your multi-source job search across 24+ platforms",
     "type": "object",
     "schemaVersion": 1,
     "properties": {
         "roles": {
             "title": "Job Roles",
-            "description": "List of job roles to search for (e.g., 'Backend Developer', 'Data Analyst')",
+            "description": "Job titles to search for. Add multiple roles to broaden your search.",
             "type": "array",
             "editor": "stringList",
-            "prefill": [
-                "Software Engineer",
-                "Frontend Developer"
-            ],
-            "items": {
-                "type": "string"
-            }
+            "prefill": ["Software Engineer", "Frontend Developer"],
+            "items": { "type": "string" },
+            "sectionCaption": "Search Configuration",
+            "sectionDescription": "Define what jobs you're looking for and where"
         },
         "location": {
             "title": "Location",
-            "description": "Filter by location (country, city, or 'Remote')",
+            "description": "Filter by location — enter a city, country, or 'Remote' for remote positions",
             "type": "string",
             "editor": "textfield",
             "prefill": "Remote",
@@ -27,57 +24,42 @@
         },
         "sources": {
             "title": "Job Sources",
-            "description": "Select which job platforms to scan",
+            "description": "Select which platforms to scan. Default covers the most popular sources.",
             "type": "array",
             "editor": "select",
-            "prefill": [
-                "remoteok",
-                "naukri",
-                "indeed",
-                "glassdoor"
-            ],
-            "default": [
-                "remoteok",
-                "indeed"
-            ],
+            "prefill": ["remoteok", "naukri", "indeed", "glassdoor"],
+            "default": ["remoteok", "indeed"],
             "items": {
                 "type": "string",
                 "enum": [
-                    "remoteok",
-                    "indeed",
-                    "glassdoor",
-                    "naukri",
-                    "monster",
-                    "weworkremotely",
-                    "wellfound",
-                    "simplyhired",
-                    "ziprecruiter",
-                    "dice",
-                    "flexjobs",
-                    "stackoverflow",
-                    "github",
-                    "careerbuilder",
-                    "shine",
-                    "timesjobs",
-                    "foundit",
-                    "instahyre",
-                    "hirist",
-                    "cutshort",
-                    "angellist",
-                    "toptal",
-                    "turing",
-                    "arc"
+                    "remoteok", "indeed", "glassdoor", "naukri", "monster",
+                    "weworkremotely", "wellfound", "simplyhired", "ziprecruiter",
+                    "dice", "flexjobs", "jobicy", "linkedin",
+                    "careerbuilder", "angellist", "toptal", "turing", "arc",
+                    "shine", "timesjobs", "foundit", "instahyre", "hirist", "cutshort"
+                ],
+                "enumTitles": [
+                    "RemoteOK (Remote)", "Indeed (Worldwide)", "Glassdoor (Worldwide)", "Naukri (India)", "Monster (Worldwide)",
+                    "WeWorkRemotely (Remote)", "Wellfound (Startups)", "SimplyHired (Worldwide)", "ZipRecruiter (Worldwide)",
+                    "Dice (Tech)", "FlexJobs (Remote)", "Jobicy (Remote)", "LinkedIn (Worldwide)",
+                    "CareerBuilder (Worldwide)", "AngelList (Startups)", "Toptal (Remote)", "Turing (Remote)", "Arc (Remote)",
+                    "Shine (India)", "TimesJobs (India)", "Foundit (India)", "Instahyre (India)", "Hirist (India)", "CutShort (India)"
                 ]
-            }
+            },
+            "sectionCaption": "Source Selection",
+            "sectionDescription": "Choose from 24 job platforms across worldwide, remote-first, and India categories"
         },
         "maxResultsPerSource": {
             "title": "Max Results Per Source",
-            "description": "Maximum number of job listings to fetch from each source",
+            "description": "Maximum jobs to fetch from each platform (lower = faster runs)",
             "type": "integer",
             "editor": "number",
             "prefill": 25,
+            "default": 25,
             "minimum": 5,
-            "maximum": 100
+            "maximum": 100,
+            "sectionCaption": "Advanced Settings",
+            "sectionDescription": "Fine-tune performance and output"
         },
         "maxDaysOld": {
             "title": "Maximum Days Old",
@@ -85,11 +67,39 @@
             "type": "integer",
             "editor": "number",
             "prefill": 7,
+            "default": 7,
             "minimum": 1,
             "maximum": 30
+        },
+        "maxTotalResults": {
+            "title": "Max Total Results",
+            "description": "Limit total output size across all sources",
+            "type": "integer",
+            "editor": "number",
+            "prefill": 500,
+            "default": 500,
+            "minimum": 10,
+            "maximum": 2000
+        },
+        "maxConcurrency": {
+            "title": "Max Concurrency",
+            "description": "Number of platforms to scan simultaneously (higher = faster but uses more memory)",
+            "type": "integer",
+            "editor": "number",
+            "prefill": 5,
+            "default": 5,
+            "minimum": 1,
+            "maximum": 10
+        },
+        "proxyConfiguration": {
+            "title": "Proxy Configuration",
+            "description": "Optional. Use Apify Proxy for better reliability. Recommended for production use.",
+            "type": "object",
+            "editor": "proxy",
+            "prefill": { "useApifyProxy": false },
+            "sectionCaption": "Proxy Settings",
+            "sectionDescription": "Configure proxy for improved reliability and to avoid IP blocks"
         }
     },
-    "required": [
-        "roles"
-    ]
+    "required": ["roles"]
 }

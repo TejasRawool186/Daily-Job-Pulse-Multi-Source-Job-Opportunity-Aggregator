@@ -8,3 +8,6 @@ apify_storage
 .idea
 .vscode
 *.log
+srs.txt
+.env
+CHANGELOG.md

@@ -1,9 +1,9 @@
 {
     "actorSpecification": 1,
     "name": "daily-job-pulse",
-    "title": "Daily Job Pulse - Multi-Source Job Aggregator",
-    "description": "Scans multiple job platforms daily (RemoteOK, Indeed, Wellfound, We Work Remotely) and aggregates the latest job opportunities with direct apply links. No AI, no API keys required.",
-    "version": "1.0.0",
+    "title": "Daily Job Pulse — Multi-Source Job Aggregator (24+ Platforms)",
+    "description": "Scans 24+ job platforms daily (Indeed, Glassdoor, RemoteOK, Naukri, LinkedIn, WeWorkRemotely, and more) and aggregates job opportunities with direct apply links. Features interactive dashboard, smart deduplication, and multi-format export. No API keys required.",
+    "version": "2.0.0",
     "buildTag": "latest",
     "meta": {
         "templateId": "js-crawlee-cheerio"
@@ -24,6 +24,7 @@
                             "company",
                             "location",
                             "source",
+                            "jobType",
                             "postedDate",
                             "applyLink"
                         ]
@@ -31,30 +32,13 @@
                     "display": {
                         "component": "table",
                         "properties": {
-                            "jobTitle": {
-                                "label": "Job Title",
-                                "format": "text"
-                            },
-                            "company": {
-                                "label": "Company",
-                                "format": "text"
-                            },
-                            "location": {
-                                "label": "Location",
-                                "format": "text"
-                            },
-                            "source": {
-                                "label": "Source",
-                                "format": "text"
-                            },
-                            "postedDate": {
-                                "label": "Posted Date",
-                                "format": "text"
-                            },
-                            "applyLink": {
-                                "label": "Apply Link",
-                                "format": "link"
-                            }
+                            "jobTitle": { "label": "Job Title", "format": "text" },
+                            "company": { "label": "Company", "format": "text" },
+                            "location": { "label": "Location", "format": "text" },
+                            "source": { "label": "Source", "format": "text" },
+                            "jobType": { "label": "Type", "format": "text" },
+                            "postedDate": { "label": "Posted", "format": "text" },
+                            "applyLink": { "label": "Apply", "format": "link" }
                         }
                     }
                 }

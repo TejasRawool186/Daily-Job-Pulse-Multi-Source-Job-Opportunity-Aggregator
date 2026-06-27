@@ -1,48 +1,35 @@
 /**
  * RemoteOK Job Scraper
  * 
- * Scrapes job listings from RemoteOK using their public API
+ * Uses RemoteOK's public JSON API — the most reliable source.
  * https://remoteok.com/api
  */
 
 import { log } from 'apify';
+import { httpGetJson, getProxyUrl } from '../utils/http.js';
 import { isJobFresh } from '../utils/normalizer.js';
 
 const REMOTEOK_API = 'https://remoteok.com/api';
 
 /**
- * Scrape jobs from RemoteOK
- * @param {Object} options - Scraper options
- * @param {string[]} options.roles - Job roles to search
- * @param {string} options.location - Location filter
- * @param {number} options.maxResults - Max results to return
- * @param {number} options.maxDaysOld - Max age of jobs in days
- * @returns {Promise<Array>} - Array of job listings
+ * Scrape jobs from RemoteOK via their public JSON API
  */
-export async function scrapeRemoteOK({ roles, location, maxResults, maxDaysOld }) {
+export async function scrapeRemoteOK({ roles, location, maxResults, maxDaysOld, proxyConfig }) {
     const jobs = [];
+    const proxyUrl = await getProxyUrl(proxyConfig);
 
     try {
-        const response = await fetch(REMOTEOK_API, {
-            headers: {
-                'User-Agent': 'DailyJobPulse/1.0 (Apify Actor)',
-                'Accept': 'application/json',
-            },
+        const { data } = await httpGetJson(REMOTEOK_API, {
+            proxyUrl,
+            sourceName: 'RemoteOK',
+            headers: { 'Accept': 'application/json' },
         });
-
-        if (!response.ok) {
-            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-        }
-
-        const data = await response.json();
 
         // First item is metadata, skip it
         const listings = Array.isArray(data) ? data.slice(1) : [];
-
         log.debug(`RemoteOK: Found ${listings.length} total listings`);
 
         for (const listing of listings) {
-            // Stop if we have enough results
             if (jobs.length >= maxResults) break;
 
             // Skip if missing required fields
@@ -79,9 +66,9 @@ export async function scrapeRemoteOK({ roles, location, maxResults, maxDaysOld }
             });
         }
 
-        log.info(`RemoteOK: Matched ${jobs.length} jobs for roles: ${roles.join(', ')}`);
+        log.info(`RemoteOK: Found ${jobs.length} jobs matching roles: ${roles.join(', ')}`);
     } catch (error) {
-        log.error(`RemoteOK scraper error: ${error.message}`);
+        log.error(`RemoteOK: ${error.message}`);
         throw error;
     }
 

@@ -1,31 +1,39 @@
 {
     "name": "daily-job-pulse",
-    "version": "1.0.0",
-    "description": "Multi-Source Job Opportunity Aggregator - Scans multiple job platforms daily and aggregates job opportunities with direct apply links",
+    "version": "2.0.0",
+    "description": "Multi-Source Job Opportunity Aggregator - Scans 24+ job platforms daily and aggregates job opportunities with direct apply links",
     "type": "module",
     "main": "src/main.js",
     "scripts": {
         "start": "node src/main.js",
-        "test": "echo \"No tests configured\" && exit 0"
+        "start:dev": "APIFY_DEV=1 node src/main.js",
+        "test": "node --check src/main.js && echo 'Syntax OK'"
     },
     "keywords": [
         "apify",
         "actor",
         "jobs",
         "scraper",
-        "remoteok",
+        "job-aggregator",
+        "remote-jobs",
         "indeed",
+        "glassdoor",
+        "naukri",
+        "remoteok",
         "wellfound",
-        "weworkremotely"
+        "weworkremotely",
+        "job-search",
+        "career"
     ],
     "author": "Tejas Rawool",
     "license": "MIT",
     "dependencies": {
-        "apify": "^3.1.0",
-        "crawlee": "^3.5.0",
-        "cheerio": "^1.0.0-rc.12"
+        "apify": "^3.7.2",
+        "crawlee": "^3.17.0",
+        "cheerio": "^1.0.0",
+        "got-scraping": "^4.0.0"
     },
     "engines": {
-        "node": ">=18.0.0"
+        "node": ">=20.0.0"
     }
 }

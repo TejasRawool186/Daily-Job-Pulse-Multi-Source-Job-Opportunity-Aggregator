@@ -1,488 +1,249 @@
 /**
- * Tech & Remote Job Platform Scrapers
- * SimplyHired, ZipRecruiter, Dice, FlexJobs, StackOverflow, GitHub, CareerBuilder
- * AngelList, Toptal, Turing, Arc
+ * Worldwide Job Platform Scrapers
+ * 
+ * Uses the scraper factory for standardized extraction.
+ * Replaced dead scrapers (GitHub Jobs, StackOverflow Jobs) with
+ * Jobicy (remote API) and LinkedIn (public listings).
  */
 
 import { log } from 'apify';
-import * as cheerio from 'cheerio';
+import { createHtmlScraper } from '../utils/scraper-factory.js';
+import { httpGetJson, getProxyUrl } from '../utils/http.js';
 
-// ============== SIMPLYHIRED ==============
-export async function scrapeSimplyHired({ roles, location, maxResults, maxDaysOld }) {
+// ─── SimplyHired ───────────────────────────────────────────────
+export const scrapeSimplyHired = createHtmlScraper({
+    name: 'simplyhired',
+    displayName: 'SimplyHired',
+    baseUrl: 'https://www.simplyhired.com',
+    buildSearchUrl: (role, location) =>
+        `https://www.simplyhired.com/search?q=${encodeURIComponent(role)}&l=${encodeURIComponent(location || 'Remote')}`,
+    selectors: {
+        container: '[data-testid="searchSerpJob"], .SerpJob, article[data-testid]',
+        title: '[data-testid="searchSerpJobTitle"], .jobTitle, h2',
+        company: '[data-testid="companyName"], .companyName, .company',
+        location: '[data-testid="searchSerpJobLocation"], .location, .loc',
+        link: 'a[href*="/job/"], a[href*="/click"]',
+    },
+});
+
+// ─── ZipRecruiter ──────────────────────────────────────────────
+export const scrapeZipRecruiter = createHtmlScraper({
+    name: 'ziprecruiter',
+    displayName: 'ZipRecruiter',
+    baseUrl: 'https://www.ziprecruiter.com',
+    buildSearchUrl: (role, location, maxDaysOld) =>
+        `https://www.ziprecruiter.com/jobs-search?search=${encodeURIComponent(role)}&location=${encodeURIComponent(location || 'Remote')}&days=${maxDaysOld}`,
+    selectors: {
+        container: '.job_result, article.job-listing, [data-testid="job-card"]',
+        title: '.job_title, h2, .title',
+        company: '.hiring_company, .company, .t_org_link',
+        location: '.location, .job_location',
+        link: 'a.job_link, a[href*="/jobs/"], a[href*="/c/"]',
+    },
+});
+
+// ─── Dice (Tech Jobs) ──────────────────────────────────────────
+export const scrapeDice = createHtmlScraper({
+    name: 'dice',
+    displayName: 'Dice',
+    baseUrl: 'https://www.dice.com',
+    buildSearchUrl: (role, location) =>
+        `https://www.dice.com/jobs?q=${encodeURIComponent(role)}&location=${encodeURIComponent(location || 'Remote')}&countryCode=US&radius=30&radiusUnit=mi&page=1&pageSize=20&language=en`,
+    selectors: {
+        container: '[data-cy="search-result-job-card"], .search-card, dhi-search-card',
+        title: '[data-cy="card-title"], .card-title, a.card-title-link',
+        company: '[data-cy="search-result-company-name"], .company-name, .dhi-comp-name',
+        location: '[data-cy="search-result-location"], .location, .dhi-location',
+        link: 'a[href*="/job-detail/"], a[href*="/jobs/"]',
+    },
+});
+
+// ─── FlexJobs ──────────────────────────────────────────────────
+export const scrapeFlexJobs = createHtmlScraper({
+    name: 'flexjobs',
+    displayName: 'FlexJobs',
+    baseUrl: 'https://www.flexjobs.com',
+    buildSearchUrl: (role, location) =>
+        `https://www.flexjobs.com/search?search=${encodeURIComponent(role)}&location=${encodeURIComponent(location || '')}`,
+    selectors: {
+        container: '.job-tile, .job-card, [data-testid="job-listing"]',
+        title: '.job-title, h5, .title',
+        company: '.company-name, .company',
+        location: '.location, .job-location',
+        link: 'a[href*="/jobs/"]',
+    },
+    defaultCompany: 'Flexible Employer',
+    defaultLocation: 'Remote',
+    requireCompany: false,
+});
+
+// ─── Jobicy (replaces dead GitHub Jobs) ────────────────────────
+export async function scrapeJobicy({ roles, location, maxResults, maxDaysOld, proxyConfig }) {
     const jobs = [];
+    const proxyUrl = await getProxyUrl(proxyConfig);
+
     try {
+        // Jobicy provides a public REST API for remote jobs
         for (const role of roles) {
             if (jobs.length >= maxResults) break;
 
-            const searchUrl = `https://www.simplyhired.com/search?q=${encodeURIComponent(role)}&l=${encodeURIComponent(location || 'Remote')}`;
+            const apiUrl = `https://jobicy.com/api/v2/remote-jobs?count=${maxResults}&tag=${encodeURIComponent(role)}`;
+            log.debug(`Jobicy: Searching for "${role}"...`);
 
-            const response = await fetch(searchUrl, {
-                headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' },
-            });
-
-            if (!response.ok) continue;
-            const html = await response.text();
-            const $ = cheerio.load(html);
-
-            $('[data-testid="searchSerpJob"], .SerpJob').each((i, el) => {
-                if (jobs.length >= maxResults) return false;
-                const $el = $(el);
-                const jobTitle = $el.find('[data-testid="searchSerpJobTitle"], .jobTitle').text().trim();
-                const company = $el.find('[data-testid="companyName"], .companyName').text().trim();
-                const jobLocation = $el.find('[data-testid="searchSerpJobLocation"], .location').text().trim();
-                const link = $el.find('a').attr('href');
-
-                if (jobTitle && company) {
-                    jobs.push({
-                        jobTitle, company,
-                        location: jobLocation || location || 'Not specified',
-                        source: 'SimplyHired',
-                        postedDate: new Date().toISOString(),
-                        jobUrl: link?.startsWith('http') ? link : `https://www.simplyhired.com${link}`,
-                        applyLink: link?.startsWith('http') ? link : `https://www.simplyhired.com${link}`,
-                    });
-                }
-            });
-            await new Promise(r => setTimeout(r, 600));
-        }
-        log.info(`SimplyHired: Found ${jobs.length} jobs`);
-    } catch (error) {
-        log.error(`SimplyHired scraper error: ${error.message}`);
-    }
-    return jobs;
-}
-
-// ============== ZIPRECRUITER ==============
-export async function scrapeZipRecruiter({ roles, location, maxResults, maxDaysOld }) {
-    const jobs = [];
-    try {
-        for (const role of roles) {
-            if (jobs.length >= maxResults) break;
-
-            const searchUrl = `https://www.ziprecruiter.com/jobs-search?search=${encodeURIComponent(role)}&location=${encodeURIComponent(location || 'Remote')}&days=${maxDaysOld}`;
-
-            const response = await fetch(searchUrl, {
-                headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' },
-            });
-
-            if (!response.ok) continue;
-            const html = await response.text();
-            const $ = cheerio.load(html);
-
-            $('.job_result, article.job-listing').each((i, el) => {
-                if (jobs.length >= maxResults) return false;
-                const $el = $(el);
-                const jobTitle = $el.find('.job_title, h2').text().trim();
-                const company = $el.find('.hiring_company, .company').text().trim();
-                const jobLocation = $el.find('.location').text().trim();
-                const link = $el.find('a.job_link, a[href*="/jobs/"]').attr('href');
-
-                if (jobTitle && company) {
-                    jobs.push({
-                        jobTitle, company,
-                        location: jobLocation || location || 'Not specified',
-                        source: 'ZipRecruiter',
-                        postedDate: new Date().toISOString(),
-                        jobUrl: link?.startsWith('http') ? link : `https://www.ziprecruiter.com${link}`,
-                        applyLink: link?.startsWith('http') ? link : `https://www.ziprecruiter.com${link}`,
-                    });
-                }
-            });
-            await new Promise(r => setTimeout(r, 600));
-        }
-        log.info(`ZipRecruiter: Found ${jobs.length} jobs`);
-    } catch (error) {
-        log.error(`ZipRecruiter scraper error: ${error.message}`);
-    }
-    return jobs;
-}
-
-// ============== DICE (Tech Jobs) ==============
-export async function scrapeDice({ roles, location, maxResults, maxDaysOld }) {
-    const jobs = [];
-    try {
-        for (const role of roles) {
-            if (jobs.length >= maxResults) break;
-
-            const searchUrl = `https://www.dice.com/jobs?q=${encodeURIComponent(role)}&location=${encodeURIComponent(location || 'Remote')}&countryCode=US&radius=30&radiusUnit=mi&page=1&pageSize=20&language=en`;
-
-            const response = await fetch(searchUrl, {
-                headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' },
-            });
-
-            if (!response.ok) continue;
-            const html = await response.text();
-            const $ = cheerio.load(html);
-
-            $('[data-cy="search-result-job-card"], .search-card').each((i, el) => {
-                if (jobs.length >= maxResults) return false;
-                const $el = $(el);
-                const jobTitle = $el.find('[data-cy="card-title"], .card-title').text().trim();
-                const company = $el.find('[data-cy="search-result-company-name"], .company-name').text().trim();
-                const jobLocation = $el.find('[data-cy="search-result-location"], .location').text().trim();
-                const link = $el.find('a[href*="/job-detail/"]').attr('href');
-
-                if (jobTitle && company) {
-                    jobs.push({
-                        jobTitle, company,
-                        location: jobLocation || location || 'Not specified',
-                        source: 'Dice',
-                        postedDate: new Date().toISOString(),
-                        jobUrl: link?.startsWith('http') ? link : `https://www.dice.com${link}`,
-                        applyLink: link?.startsWith('http') ? link : `https://www.dice.com${link}`,
-                    });
-                }
-            });
-            await new Promise(r => setTimeout(r, 600));
-        }
-        log.info(`Dice: Found ${jobs.length} jobs`);
-    } catch (error) {
-        log.error(`Dice scraper error: ${error.message}`);
-    }
-    return jobs;
-}
-
-// ============== FLEXJOBS ==============
-export async function scrapeFlexJobs({ roles, location, maxResults, maxDaysOld }) {
-    const jobs = [];
-    try {
-        for (const role of roles) {
-            if (jobs.length >= maxResults) break;
-
-            const searchUrl = `https://www.flexjobs.com/search?search=${encodeURIComponent(role)}&location=${encodeURIComponent(location || '')}`;
-
-            const response = await fetch(searchUrl, {
-                headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' },
-            });
-
-            if (!response.ok) continue;
-            const html = await response.text();
-            const $ = cheerio.load(html);
-
-            $('.job-tile, .job-card').each((i, el) => {
-                if (jobs.length >= maxResults) return false;
-                const $el = $(el);
-                const jobTitle = $el.find('.job-title, h5').text().trim();
-                const company = $el.find('.company-name').text().trim();
-                const jobLocation = $el.find('.location, .job-location').text().trim();
-                const link = $el.find('a[href*="/jobs/"]').attr('href');
-
-                if (jobTitle) {
-                    jobs.push({
-                        jobTitle,
-                        company: company || 'Flexible Employer',
-                        location: jobLocation || 'Remote',
-                        source: 'FlexJobs',
-                        postedDate: new Date().toISOString(),
-                        jobUrl: link?.startsWith('http') ? link : `https://www.flexjobs.com${link}`,
-                        applyLink: link?.startsWith('http') ? link : `https://www.flexjobs.com${link}`,
-                    });
-                }
-            });
-            await new Promise(r => setTimeout(r, 600));
-        }
-        log.info(`FlexJobs: Found ${jobs.length} jobs`);
-    } catch (error) {
-        log.error(`FlexJobs scraper error: ${error.message}`);
-    }
-    return jobs;
-}
-
-// ============== STACKOVERFLOW JOBS ==============
-export async function scrapeStackOverflow({ roles, location, maxResults, maxDaysOld }) {
-    const jobs = [];
-    try {
-        // StackOverflow Jobs redirects to a different platform now
-        const searchUrl = `https://stackoverflow.jobs/search?q=${encodeURIComponent(roles[0] || 'developer')}`;
-
-        const response = await fetch(searchUrl, {
-            headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' },
-        });
-
-        if (!response.ok) {
-            log.info('StackOverflow: Jobs section not available');
-            return jobs;
-        }
-
-        const html = await response.text();
-        const $ = cheerio.load(html);
-
-        $('.job-card, .listResults .job').each((i, el) => {
-            if (jobs.length >= maxResults) return false;
-            const $el = $(el);
-            const jobTitle = $el.find('.job-title, h2').text().trim();
-            const company = $el.find('.company-name, .employer').text().trim();
-            const jobLocation = $el.find('.location').text().trim();
-            const link = $el.find('a').attr('href');
-
-            if (jobTitle) {
-                jobs.push({
-                    jobTitle,
-                    company: company || 'Tech Company',
-                    location: jobLocation || location || 'Remote',
-                    source: 'StackOverflow',
-                    postedDate: new Date().toISOString(),
-                    jobUrl: link?.startsWith('http') ? link : `https://stackoverflow.jobs${link}`,
-                    applyLink: link?.startsWith('http') ? link : `https://stackoverflow.jobs${link}`,
+            try {
+                const { data } = await httpGetJson(apiUrl, {
+                    proxyUrl,
+                    sourceName: 'Jobicy',
                 });
+
+                const listings = data?.jobs || [];
+
+                for (const listing of listings) {
+                    if (jobs.length >= maxResults) break;
+
+                    if (!listing.jobTitle || !listing.companyName) continue;
+
+                    // Location filter
+                    const jobLocation = listing.jobGeo || 'Remote';
+                    if (location && location.toLowerCase() !== 'remote') {
+                        if (!jobLocation.toLowerCase().includes(location.toLowerCase())) {
+                            continue;
+                        }
+                    }
+
+                    jobs.push({
+                        jobTitle: listing.jobTitle,
+                        company: listing.companyName,
+                        location: jobLocation,
+                        source: 'Jobicy',
+                        postedDate: listing.pubDate || new Date().toISOString(),
+                        jobUrl: listing.url || 'https://jobicy.com',
+                        applyLink: listing.url || 'https://jobicy.com',
+                    });
+                }
+            } catch (error) {
+                log.warning(`Jobicy: Failed for role "${role}": ${error.message}`);
             }
-        });
-        log.info(`StackOverflow: Found ${jobs.length} jobs`);
-    } catch (error) {
-        log.error(`StackOverflow scraper error: ${error.message}`);
-    }
-    return jobs;
-}
-
-// ============== GITHUB JOBS ==============
-export async function scrapeGitHub({ roles, location, maxResults, maxDaysOld }) {
-    const jobs = [];
-    try {
-        // GitHub Jobs was deprecated, redirecting to similar platforms
-        const searchUrl = `https://jobs.github.com/positions?description=${encodeURIComponent(roles[0] || 'developer')}&location=${encodeURIComponent(location || '')}`;
-
-        const response = await fetch(searchUrl, {
-            headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' },
-        });
-
-        if (!response.ok) {
-            log.info('GitHub Jobs: Service redirected or unavailable');
-            return jobs;
         }
 
-        log.info(`GitHub: Found ${jobs.length} jobs`);
+        log.info(`Jobicy: Found ${jobs.length} jobs`);
     } catch (error) {
-        log.debug(`GitHub scraper: ${error.message}`);
+        log.error(`Jobicy: ${error.message}`);
+        throw error;
     }
+
     return jobs;
 }
 
-// ============== CAREERBUILDER ==============
-export async function scrapeCareerBuilder({ roles, location, maxResults, maxDaysOld }) {
-    const jobs = [];
-    try {
-        for (const role of roles) {
-            if (jobs.length >= maxResults) break;
+// ─── LinkedIn (replaces dead StackOverflow Jobs) ───────────────
+export const scrapeLinkedIn = createHtmlScraper({
+    name: 'linkedin',
+    displayName: 'LinkedIn',
+    baseUrl: 'https://www.linkedin.com',
+    buildSearchUrl: (role, location) =>
+        `https://www.linkedin.com/jobs/search?keywords=${encodeURIComponent(role)}&location=${encodeURIComponent(location || 'Remote')}&f_TPR=r604800`,
+    selectors: {
+        container: '.base-card, .job-search-card, [data-entity-urn]',
+        title: '.base-search-card__title, h3.base-search-card__title, .job-title',
+        company: '.base-search-card__subtitle, h4.base-search-card__subtitle, .company-name',
+        location: '.job-search-card__location, .base-search-card__metadata, .location',
+        link: 'a.base-card__full-link, a[href*="/jobs/view/"]',
+    },
+    defaultCompany: 'Company',
+    requireCompany: false,
+});
 
-            const searchUrl = `https://www.careerbuilder.com/jobs?keywords=${encodeURIComponent(role)}&location=${encodeURIComponent(location || 'Remote')}`;
+// ─── CareerBuilder ─────────────────────────────────────────────
+export const scrapeCareerBuilder = createHtmlScraper({
+    name: 'careerbuilder',
+    displayName: 'CareerBuilder',
+    baseUrl: 'https://www.careerbuilder.com',
+    buildSearchUrl: (role, location) =>
+        `https://www.careerbuilder.com/jobs?keywords=${encodeURIComponent(role)}&location=${encodeURIComponent(location || 'Remote')}`,
+    selectors: {
+        container: '[data-job-id], .job-listing-item, .data-results-content-parent',
+        title: '.job-title, h2, .data-results-title',
+        company: '.company-name, .employer, .data-details',
+        location: '.location, .job-location, .data-details .location',
+        link: 'a[href*="/job/"]',
+    },
+});
 
-            const response = await fetch(searchUrl, {
-                headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' },
-            });
+// ─── AngelList ─────────────────────────────────────────────────
+export const scrapeAngelList = createHtmlScraper({
+    name: 'angellist',
+    displayName: 'AngelList',
+    baseUrl: 'https://angel.co',
+    buildSearchUrl: (role) => {
+        const roleSlug = role.toLowerCase().replace(/\s+/g, '-');
+        return `https://angel.co/role/${roleSlug}`;
+    },
+    selectors: {
+        container: '[class*="jobListing"], .job-card, [data-test="startup-list-item"]',
+        title: '[class*="title"], h3, .job-title',
+        company: '[class*="company"], .startup-name, .company-name',
+        location: '[class*="location"], .location',
+        link: 'a[href*="/jobs/"], a[href*="/l/"]',
+    },
+    defaultCompany: 'Startup',
+    defaultLocation: 'Remote',
+    requireCompany: false,
+});
 
-            if (!response.ok) continue;
-            const html = await response.text();
-            const $ = cheerio.load(html);
+// ─── Toptal ────────────────────────────────────────────────────
+export const scrapeToptal = createHtmlScraper({
+    name: 'toptal',
+    displayName: 'Toptal',
+    baseUrl: 'https://www.toptal.com',
+    buildSearchUrl: () => 'https://www.toptal.com/careers',
+    selectors: {
+        container: '.job-listing, .position-card, article, [data-test="job-card"]',
+        title: 'h3, h4, .title, .position-title',
+        company: '.company',
+        location: '.location',
+        link: 'a[href*="/careers/"], a[href*="/positions/"]',
+    },
+    defaultCompany: 'Toptal',
+    defaultLocation: 'Remote',
+    requireCompany: false,
+});
 
-            $('[data-job-id], .job-listing-item').each((i, el) => {
-                if (jobs.length >= maxResults) return false;
-                const $el = $(el);
-                const jobTitle = $el.find('.job-title, h2').text().trim();
-                const company = $el.find('.company-name, .employer').text().trim();
-                const jobLocation = $el.find('.location, .job-location').text().trim();
-                const link = $el.find('a[href*="/job/"]').attr('href');
+// ─── Turing ────────────────────────────────────────────────────
+export const scrapeTuring = createHtmlScraper({
+    name: 'turing',
+    displayName: 'Turing',
+    baseUrl: 'https://www.turing.com',
+    buildSearchUrl: (role) => {
+        const roleSlug = role.toLowerCase().replace(/\s+/g, '-');
+        return `https://www.turing.com/remote-developer-jobs/${roleSlug}`;
+    },
+    selectors: {
+        container: '.job-card, [class*="JobCard"], [data-testid="job-listing"]',
+        title: '.job-title, h3, h4',
+        company: '.company-name, .company',
+        location: '.location',
+        link: 'a[href*="/remote-developer-jobs/"], a[href*="/jobs/"]',
+    },
+    defaultCompany: 'Turing Client',
+    defaultLocation: 'Remote',
+    requireCompany: false,
+});
 
-                if (jobTitle && company) {
-                    jobs.push({
-                        jobTitle, company,
-                        location: jobLocation || location || 'Not specified',
-                        source: 'CareerBuilder',
-                        postedDate: new Date().toISOString(),
-                        jobUrl: link?.startsWith('http') ? link : `https://www.careerbuilder.com${link}`,
-                        applyLink: link?.startsWith('http') ? link : `https://www.careerbuilder.com${link}`,
-                    });
-                }
-            });
-            await new Promise(r => setTimeout(r, 600));
-        }
-        log.info(`CareerBuilder: Found ${jobs.length} jobs`);
-    } catch (error) {
-        log.error(`CareerBuilder scraper error: ${error.message}`);
-    }
-    return jobs;
-}
-
-// ============== ANGELLIST ==============
-export async function scrapeAngelList({ roles, location, maxResults, maxDaysOld }) {
-    const jobs = [];
-    try {
-        for (const role of roles) {
-            if (jobs.length >= maxResults) break;
-
-            const roleSlug = role.toLowerCase().replace(/\s+/g, '-');
-            const searchUrl = `https://angel.co/role/${roleSlug}`;
-
-            const response = await fetch(searchUrl, {
-                headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' },
-            });
-
-            if (!response.ok) continue;
-            const html = await response.text();
-            const $ = cheerio.load(html);
-
-            $('[class*="jobListing"], .job-card').each((i, el) => {
-                if (jobs.length >= maxResults) return false;
-                const $el = $(el);
-                const jobTitle = $el.find('[class*="title"], h3').text().trim();
-                const company = $el.find('[class*="company"], .startup-name').text().trim();
-                const jobLocation = $el.find('[class*="location"]').text().trim();
-                const link = $el.find('a[href*="/jobs/"]').attr('href');
-
-                if (jobTitle) {
-                    jobs.push({
-                        jobTitle,
-                        company: company || 'Startup',
-                        location: jobLocation || location || 'Remote',
-                        source: 'AngelList',
-                        postedDate: new Date().toISOString(),
-                        jobUrl: link?.startsWith('http') ? link : `https://angel.co${link}`,
-                        applyLink: link?.startsWith('http') ? link : `https://angel.co${link}`,
-                    });
-                }
-            });
-            await new Promise(r => setTimeout(r, 600));
-        }
-        log.info(`AngelList: Found ${jobs.length} jobs`);
-    } catch (error) {
-        log.error(`AngelList scraper error: ${error.message}`);
-    }
-    return jobs;
-}
-
-// ============== TOPTAL ==============
-export async function scrapeToptal({ roles, location, maxResults, maxDaysOld }) {
-    const jobs = [];
-    try {
-        const searchUrl = `https://www.toptal.com/careers`;
-
-        const response = await fetch(searchUrl, {
-            headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' },
-        });
-
-        if (!response.ok) {
-            log.info('Toptal: Careers page not accessible');
-            return jobs;
-        }
-
-        const html = await response.text();
-        const $ = cheerio.load(html);
-
-        $('.job-listing, .position-card, article').each((i, el) => {
-            if (jobs.length >= maxResults) return false;
-            const $el = $(el);
-            const jobTitle = $el.find('h3, h4, .title').text().trim();
-            const link = $el.find('a').attr('href');
-
-            // Filter by role
-            const matchesRole = roles.some(r => jobTitle.toLowerCase().includes(r.toLowerCase()));
-
-            if (jobTitle && matchesRole) {
-                jobs.push({
-                    jobTitle,
-                    company: 'Toptal',
-                    location: 'Remote',
-                    source: 'Toptal',
-                    postedDate: new Date().toISOString(),
-                    jobUrl: link?.startsWith('http') ? link : `https://www.toptal.com${link}`,
-                    applyLink: link?.startsWith('http') ? link : `https://www.toptal.com${link}`,
-                });
-            }
-        });
-        log.info(`Toptal: Found ${jobs.length} jobs`);
-    } catch (error) {
-        log.error(`Toptal scraper error: ${error.message}`);
-    }
-    return jobs;
-}
-
-// ============== TURING ==============
-export async function scrapeTuring({ roles, location, maxResults, maxDaysOld }) {
-    const jobs = [];
-    try {
-        for (const role of roles) {
-            if (jobs.length >= maxResults) break;
-
-            const roleSlug = role.toLowerCase().replace(/\s+/g, '-');
-            const searchUrl = `https://www.turing.com/remote-developer-jobs/${roleSlug}`;
-
-            const response = await fetch(searchUrl, {
-                headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' },
-            });
-
-            if (!response.ok) continue;
-            const html = await response.text();
-            const $ = cheerio.load(html);
-
-            $('.job-card, [class*="JobCard"]').each((i, el) => {
-                if (jobs.length >= maxResults) return false;
-                const $el = $(el);
-                const jobTitle = $el.find('.job-title, h3, h4').first().text().trim();
-                const company = $el.find('.company-name').text().trim();
-                const link = $el.find('a').attr('href');
-
-                if (jobTitle) {
-                    jobs.push({
-                        jobTitle,
-                        company: company || 'Turing Client',
-                        location: 'Remote',
-                        source: 'Turing',
-                        postedDate: new Date().toISOString(),
-                        jobUrl: link?.startsWith('http') ? link : `https://www.turing.com${link}`,
-                        applyLink: link?.startsWith('http') ? link : `https://www.turing.com${link}`,
-                    });
-                }
-            });
-            await new Promise(r => setTimeout(r, 500));
-        }
-        log.info(`Turing: Found ${jobs.length} jobs`);
-    } catch (error) {
-        log.error(`Turing scraper error: ${error.message}`);
-    }
-    return jobs;
-}
-
-// ============== ARC.DEV ==============
-export async function scrapeArc({ roles, location, maxResults, maxDaysOld }) {
-    const jobs = [];
-    try {
-        for (const role of roles) {
-            if (jobs.length >= maxResults) break;
-
-            const searchUrl = `https://arc.dev/remote-jobs?search=${encodeURIComponent(role)}`;
-
-            const response = await fetch(searchUrl, {
-                headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' },
-            });
-
-            if (!response.ok) continue;
-            const html = await response.text();
-            const $ = cheerio.load(html);
-
-            $('.job-card, [class*="JobCard"], article').each((i, el) => {
-                if (jobs.length >= maxResults) return false;
-                const $el = $(el);
-                const jobTitle = $el.find('.job-title, h3, h4').first().text().trim();
-                const company = $el.find('.company-name, .company').text().trim();
-                const jobLocation = $el.find('.location').text().trim();
-                const link = $el.find('a').attr('href');
-
-                if (jobTitle) {
-                    jobs.push({
-                        jobTitle,
-                        company: company || 'Arc Client',
-                        location: jobLocation || 'Remote',
-                        source: 'Arc',
-                        postedDate: new Date().toISOString(),
-                        jobUrl: link?.startsWith('http') ? link : `https://arc.dev${link}`,
-                        applyLink: link?.startsWith('http') ? link : `https://arc.dev${link}`,
-                    });
-                }
-            });
-            await new Promise(r => setTimeout(r, 500));
-        }
-        log.info(`Arc: Found ${jobs.length} jobs`);
-    } catch (error) {
-        log.error(`Arc scraper error: ${error.message}`);
-    }
-    return jobs;
-}
+// ─── Arc.dev ───────────────────────────────────────────────────
+export const scrapeArc = createHtmlScraper({
+    name: 'arc',
+    displayName: 'Arc',
+    baseUrl: 'https://arc.dev',
+    buildSearchUrl: (role) =>
+        `https://arc.dev/remote-jobs?search=${encodeURIComponent(role)}`,
+    selectors: {
+        container: '.job-card, [class*="JobCard"], article, [data-testid="job-card"]',
+        title: '.job-title, h3, h4',
+        company: '.company-name, .company',
+        location: '.location',
+        link: 'a[href*="/remote-jobs/"], a[href*="/jobs/"]',
+    },
+    defaultCompany: 'Arc Client',
+    defaultLocation: 'Remote',
+    requireCompany: false,
+});

@@ -5,6 +5,10 @@ node_modules/
 storage/
 apify_storage/
 
+# Environment
+.env
+.env.local
+
 # Logs
 *.log
 npm-debug.log*
